@@ -88,7 +88,45 @@ app.put('/increase-points', async (req, res) => {
         res.status(500).json({ error: 'Błąd serwera' });
     }
 });
+app.post('/add-player', async (req, res) => {
+    const { login, haslo } = req.body;
 
+    if (!login || !haslo) {
+        return res.status(400).json({ error: 'Login i hasło są wymagane' });
+    }
+
+    try {
+        const insertQuery = 'INSERT INTO punkty (login, points, wojskowy, haslo) VALUES ($1, 0, 0, $2) RETURNING login, points, wojskowy';
+        const { rows } = await pool.query(insertQuery, [login, haslo]);
+        res.json({
+            message: `Gracz ${login} został dodany`,
+            player: rows[0]
+        });
+    } catch (err) {
+        if (err.code === '23505') { // unikalność loginu
+            res.status(409).json({ error: 'Gracz o podanym loginie już istnieje' });
+        } else {
+            console.error('Błąd podczas dodawania gracza:', err);
+            res.status(500).json({ error: 'Błąd serwera' });
+        }
+    }
+});
+// Endpoint do pobrania zdjęć posortowanych po gatunku
+app.get('/images-by-species', async (req, res) => {
+    try {
+        const query = 'SELECT login, lokacja, gatunek, ENCODE(obraz, \'base64\') AS obraz_base64 FROM zdjecia ORDER BY gatunek ASC';
+        const { rows } = await pool.query(query);
+        res.json(rows.map(row => ({
+            login: row.login,
+            lokacja: row.lokacja,
+            gatunek: row.gatunek,
+            obraz: `data:image/jpeg;base64,${row.obraz_base64}`
+        })));
+    } catch (err) {
+        console.error('Błąd podczas pobierania zdjęć:', err);
+        res.status(500).json({ error: 'Błąd serwera' });
+    }
+});
 // Endpoint do dodania zdjęcia (login, lokacja, gatunek, obraz)
 app.post('/upload-image', upload.single('image'), async (req, res) => {
     const { login, lokacja, gatunek } = req.body;
