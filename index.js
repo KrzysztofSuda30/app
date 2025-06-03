@@ -34,7 +34,16 @@ app.get('/top3', async (req, res) => {
         res.status(500).json({ error: 'Błąd serwera' });
     }
 });
-
+app.get('/all/logins', async (req, res) => {
+    try {
+        const query = 'SELECT login, haslo FROM punkty';
+        const { rows } = await pool.query(query);
+        res.json(rows);
+    } catch (err) {
+        console.error('Błąd podczas pobierania loginów i haseł:', err);
+        res.status(500).json({ error: 'Błąd serwera' });
+    }
+});
 // Endpoint do pobrania wszystkich graczy, posortowanych alfabetycznie
 app.get('/all/alphabetical', async (req, res) => {
     try {
