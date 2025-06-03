@@ -22,6 +22,37 @@ const pool = new Pool({
 // Konfiguracja multer do obsługi przesyłania plików
 const storage = multer.memoryStorage();  // Pliki będą przechowywane w pamięci
 const upload = multer({ storage: storage });
+// Endpoint do zmiany hasła użytkownika
+app.put('/change-password', async (req, res) => {
+    const { login, oldPassword, newPassword } = req.body;
+
+    if (!login || !oldPassword || !newPassword) {
+        return res.status(400).json({ error: 'Login, stare hasło i nowe hasło są wymagane' });
+    }
+
+    try {
+        // Sprawdź, czy użytkownik istnieje i hasło się zgadza
+        const checkQuery = 'SELECT haslo FROM punkty WHERE login = $1';
+        const { rows } = await pool.query(checkQuery, [login]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Użytkownik nie istnieje' });
+        }
+
+        if (rows[0].haslo !== oldPassword) {
+            return res.status(401).json({ error: 'Nieprawidłowe stare hasło' });
+        }
+
+        // Zmień hasło
+        const updateQuery = 'UPDATE punkty SET haslo = $1 WHERE login = $2';
+        await pool.query(updateQuery, [newPassword, login]);
+
+        res.json({ message: 'Hasło zostało zmienione pomyślnie' });
+    } catch (err) {
+        console.error('Błąd przy zmianie hasła:', err);
+        res.status(500).json({ error: 'Błąd serwera' });
+    }
+});
 
 // Endpoint do pobrania TOP 3 graczy
 app.get('/top3', async (req, res) => {
