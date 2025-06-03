@@ -75,6 +75,16 @@ app.get('/all/logins', async (req, res) => {
         res.status(500).json({ error: 'Błąd serwera' });
     }
 });
+app.get('/logins/military', async (req, res) => {
+    try {
+        const query = 'SELECT login, wojskowy FROM punkty';
+        const { rows } = await pool.query(query);
+        res.json(rows);
+    } catch (err) {
+        console.error('Błąd podczas pobierania loginów i informacji wojskowej:', err);
+        res.status(500).json({ error: 'Błąd serwera' });
+    }
+});
 // Endpoint do pobrania wszystkich graczy, posortowanych alfabetycznie
 app.get('/all/alphabetical', async (req, res) => {
     try {
