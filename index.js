@@ -109,7 +109,6 @@ app.get('/all/points', async (req, res) => {
     }
 });
 
-// Endpoint do zwiększenia punktów gracza o 1 lub dodania nowego gracza
 app.put('/increase-points', async (req, res) => {
     const { login } = req.body;
 
@@ -118,7 +117,7 @@ app.put('/increase-points', async (req, res) => {
     }
 
     try {
-        // Najpierw sprawdzamy, czy gracz istnieje
+        // Sprawdzamy, czy gracz istnieje
         const checkQuery = 'SELECT login FROM punkty WHERE login = $1';
         const { rows: existingPlayer } = await pool.query(checkQuery, [login]);
 
@@ -128,13 +127,11 @@ app.put('/increase-points', async (req, res) => {
             const { rows } = await pool.query(updateQuery, [login]);
             res.json({ message: `Punkty gracza ${login} zostały zwiększone o 1`, player: rows[0] });
         } else {
-            // Jeśli gracz nie istnieje, dodajemy go z 1 punktem
-            const insertQuery = 'INSERT INTO punkty (login, points) VALUES ($1, 1) RETURNING login, points';
-            const { rows } = await pool.query(insertQuery, [login]);
-            res.json({ message: `Gracz ${login} został dodany z 1 punktem`, player: rows[0] });
+            // Gracz nie istnieje — zwracamy błąd
+            res.status(404).json({ error: `Gracz ${login} nie istnieje w bazie danych` });
         }
     } catch (err) {
-        console.error('Błąd podczas aktualizacji danych:', err);
+        console.error('Błąd podczas aktualizacji punktów:', err);
         res.status(500).json({ error: 'Błąd serwera' });
     }
 });
