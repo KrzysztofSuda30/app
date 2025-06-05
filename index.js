@@ -174,9 +174,9 @@ app.get('/images-by-species', async (req, res) => {
         res.status(500).json({ error: 'Błąd serwera' });
     }
 });
-// Endpoint do dodania zdjęcia (login, lokacja, gatunek, obraz)
+// Endpoint do dodania zdjęcia (login, lokacja, gatunek, obraz, data)
 app.post('/upload-image', upload.single('image'), async (req, res) => {
-    const { login, lokacja, gatunek } = req.body;
+    const { login, lokacja, gatunek, data } = req.body;
     const imageBuffer = req.file ? req.file.buffer : null;
 
     if (!login || !lokacja || !gatunek || !imageBuffer) {
@@ -184,9 +184,21 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
     }
 
     try {
-        // Zapytanie do bazy danych w celu dodania zdjęcia
-        const insertQuery = 'INSERT INTO zdjecia (login, lokacja, gatunek, obraz) VALUES ($1, $2, $3, $4) RETURNING login, lokacja, gatunek, obraz';
-        const { rows } = await pool.query(insertQuery, [login, lokacja, gatunek, imageBuffer]);
+        // Użyj daty z żądania lub aktualnej daty serwera
+        const dateToUse = data ? new Date(data) : new Date();
+
+        const insertQuery = `
+            INSERT INTO zdjecia (login, lokacja, gatunek, obraz, data1) 
+            VALUES ($1, $2, $3, $4, $5) 
+            RETURNING login, lokacja, gatunek, data1
+        `;
+        const { rows } = await pool.query(insertQuery, [
+            login,
+            lokacja,
+            gatunek,
+            imageBuffer,
+            dateToUse
+        ]);
 
         res.json({
             message: `Zdjęcie gracza ${login} zostało dodane`,
@@ -197,6 +209,7 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
         res.status(500).json({ error: 'Błąd serwera' });
     }
 });
+
 
 app.listen(PORT, () => {
     console.log(`Serwer działa na http://localhost:${PORT}`);
