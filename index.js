@@ -209,6 +209,128 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
         res.status(500).json({ error: 'Błąd serwera' });
     }
 });
+// nowe
+
+app.get('/images/by-login/asc', async (req, res) => {
+    const { login } = req.query;
+
+    if (!login) {
+        return res.status(400).json({ error: 'Login jest wymagany' });
+    }
+
+    try {
+        const query = `
+            SELECT login, lokacja, gatunek, ENCODE(obraz, 'base64') AS obraz_base64, data1 
+            FROM zdjecia 
+            WHERE login = $1 
+            ORDER BY data1 ASC
+        `;
+        const { rows } = await pool.query(query, [login]);
+        res.json(rows.map(row => ({
+            login: row.login,
+            lokacja: row.lokacja,
+            gatunek: row.gatunek,
+            data: row.data1,
+            obraz: `data:image/jpeg;base64,${row.obraz_base64}`
+        })));
+    } catch (err) {
+        console.error('Błąd przy pobieraniu zdjęć (rosnąco):', err);
+        res.status(500).json({ error: 'Błąd serwera' });
+    }
+});
+app.get('/images/by-login/desc', async (req, res) => {
+    const { login } = req.query;
+
+    if (!login) {
+        return res.status(400).json({ error: 'Login jest wymagany' });
+    }
+
+    try {
+        const query = `
+            SELECT login, lokacja, gatunek, ENCODE(obraz, 'base64') AS obraz_base64, data1 
+            FROM zdjecia 
+            WHERE login = $1 
+            ORDER BY data1 DESC
+        `;
+        const { rows } = await pool.query(query, [login]);
+        res.json(rows.map(row => ({
+            login: row.login,
+            lokacja: row.lokacja,
+            gatunek: row.gatunek,
+            data: row.data1,
+            obraz: `data:image/jpeg;base64,${row.obraz_base64}`
+        })));
+    } catch (err) {
+        console.error('Błąd przy pobieraniu zdjęć (malejąco):', err);
+        res.status(500).json({ error: 'Błąd serwera' });
+    }
+});
+app.get('/images/by-species', async (req, res) => {
+    const { gatunek, login } = req.query;
+
+    if (!gatunek || !login) {
+        return res.status(400).json({ error: 'Gatunek i login są wymagane' });
+    }
+
+    try {
+        const query = `
+            SELECT login, lokacja, gatunek, ENCODE(obraz, 'base64') AS obraz_base64, data1 
+            FROM zdjecia 
+            WHERE gatunek = $1 AND login = $2
+            ORDER BY data1 DESC
+        `;
+        const { rows } = await pool.query(query, [gatunek, login]);
+        res.json(rows.map(row => ({
+            login: row.login,
+            lokacja: row.lokacja,
+            gatunek: row.gatunek,
+            data: row.data1,
+            obraz: `data:image/jpeg;base64,${row.obraz_base64}`
+        })));
+    } catch (err) {
+        console.error('Błąd przy pobieraniu zdjęć po gatunku i loginie:', err);
+        res.status(500).json({ error: 'Błąd serwera' });
+    }
+});
+// GET /species/by-count?login=krzysiek
+app.get('/species/by-count', async (req, res) => {
+    const { login } = req.query;
+
+    if (!login) {
+        return res.status(400).json({ error: 'Login jest wymagany' });
+    }
+
+    try {
+        const query = `
+            SELECT z.login, z.lokacja, z.gatunek, z.data1, ENCODE(z.obraz, 'base64') AS obraz_base64, liczby.liczba_zdjec
+            FROM zdjecia z
+            JOIN (
+                SELECT gatunek, COUNT(*) AS liczba_zdjec
+                FROM zdjecia
+                WHERE login = $1
+                GROUP BY gatunek
+            ) AS liczby ON z.gatunek = liczby.gatunek
+            WHERE z.login = $1
+            ORDER BY liczby.liczba_zdjec DESC, z.gatunek, z.data1 DESC
+        `;
+
+        const { rows } = await pool.query(query, [login]);
+
+        const result = rows.map(row => ({
+            login: row.login,
+            lokacja: row.lokacja,
+            gatunek: row.gatunek,
+            data: row.data1,
+            liczba_zdjec: row.liczba_zdjec,
+            obraz: `data:image/jpeg;base64,${row.obraz_base64}`
+        }));
+
+        res.json(result);
+    } catch (err) {
+        console.error('Błąd przy pobieraniu pełnych danych gatunków:', err);
+        res.status(500).json({ error: 'Błąd serwera' });
+    }
+});
 
 
 app.listen(PORT, () => {
