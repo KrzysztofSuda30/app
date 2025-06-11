@@ -18,7 +18,25 @@ const pool = new Pool({
         rejectUnauthorized: false
     }
 });
+const axios = require('axios');
 
+app.get('/geocode', async (req, res) => {
+    const { address } = req.query;
+    if (!address) return res.status(400).json({ error: 'Adres wymagany' });
+
+    try {
+        const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+            params: {
+                address,
+                key: process.env.GOOGLE_API_KEY
+            }
+        });
+        res.json(response.data);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Błąd pobierania z Google Maps' });
+    }
+}); 
 // Konfiguracja multer do obsługi przesyłania plików
 const storage = multer.memoryStorage();  // Pliki będą przechowywane w pamięci
 const upload = multer({ storage: storage });
